@@ -5,7 +5,6 @@ SpeechRecognition
 torchaudio
 gTTS
 openai-whisper
-sacremosestete
 ollama
 langdetect
 librosa

@@ -10,7 +10,6 @@ ollama
 langdetect
 librosa
 torch
-sentencepiece
 postgres
 apache-airflow
 sacremoses
