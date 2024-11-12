@@ -1,0 +1,90 @@
+version: '3.11'
+
+services:
+  # Сервис PostgreSQL для Airflow
+  postgres:
+    image: postgres:13
+    container_name: ${POSTGRES_HOST}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${PORT_DP}:${PORT_DP}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always  # Убедитесь, что сервис всегда перезапустится при сбоях
+
+  # Основное приложение
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: app_container
+    restart: always
+    environment:
+      TZ: UTC
+    volumes:
+      - ./app:/app
+      - all_info_for_drive:/all_info_for_drive
+    privileged: true
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+  # Airflow Webserver
+  airflow_webserver:
+    build:
+      context: ./dags
+      dockerfile: Dockerfile
+    container_name: airflow_webserver
+    depends_on:
+      - postgres  # Убедитесь, что контейнер запускается после PostgreSQL
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${PORT_DP}/${POSTGRES_DB}
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+    ports:
+      - "${PORT_AIRFLOW}:${PORT_AIRFLOW}"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - all_info_for_drive:/opt/app/all_info_for_drive
+    command: >
+      bash -c "
+      until pg_isready -h postgres -p ${PORT_DP} -U ${POSTGRES_USER}; do
+        echo 'Waiting for PostgreSQL to become ready...';
+        sleep 2;
+      done;
+      airflow db init &&
+      airflow users create -u admin -p airflow -r Admin -e dina.shilova0799@gmail.com -f Diana -l Shilova &&
+      airflow webserver"
+    restart: always
+
+  # Airflow Scheduler
+  airflow_scheduler:
+    build:
+      context: ./dags
+      dockerfile: Dockerfile
+    container_name: airflow_scheduler
+    depends_on:
+      - postgres  # Тоже зависит от PostgreSQL
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${PORT_DP}/${POSTGRES_DB}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - all_info_for_drive:/opt/app/all_info_for_drive
+    command: >
+      bash -c "
+      until pg_isready -h postgres -p ${PORT_DP} -U ${POSTGRES_USER}; do
+        echo 'Waiting for PostgreSQL to become ready...';
+        sleep 2;
+      done;
+      airflow db init &&
+      airflow scheduler"
+    restart: always
+
+volumes:
+  postgres_data:  # Том для данных PostgreSQL, чтобы данные сохранялись между перезапусками
+  all_info_for_drive:

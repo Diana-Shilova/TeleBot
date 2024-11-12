@@ -1,0 +1,1 @@
+This command should be executed in an active virtual environment where packages are to be removed. If the virtual environment is not enabled, this command will remove packages from the Python global area, which is most likely not the desired activity.
