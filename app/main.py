@@ -32,7 +32,7 @@ logging.basicConfig(
 )
 
 # JustSpeech
-TOKEN = '7318753618:AAFGEcDELj5DgHutedK7vKFX0xgRXXDvRUo'
+TOKEN = 'YOUR_TOKEN'
 bot = telebot.TeleBot(TOKEN)
 
 # Создание кнопок
