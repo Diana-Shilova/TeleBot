@@ -1,15 +1,15 @@
 import logging
 import telebot
 import random
-import signal
 from telebot import types
 from models import text_to_voice, speech_to_text, question_answer, translation_text, emotion_analysis
 from google_drive import upload_new_file, create_folder_for_new_user
-import os
+import os, time
+import traceback
 
 # Проверка и создание папки для сохранения файлов
-folder_path = "/all_info_for_drive"
-sticker_dir = "/sticker"
+folder_path = "all_info_for_drive"
+sticker_dir = "sticker"
 
 if not os.path.exists(folder_path):
     os.makedirs(folder_path)
@@ -49,7 +49,8 @@ markup_func_ru.add(btn4_ru)
 markup_func_ru.add(btn5_ru)
 
 markup_audio = types.InlineKeyboardMarkup()
-audio_without_timer = types.InlineKeyboardButton("Расшифровка аудио с временным интервалом", callback_data='audio_timer')
+audio_without_timer = types.InlineKeyboardButton("Расшифровка аудио с временным интервалом",
+                                                 callback_data='audio_timer')
 audio_with_timer = types.InlineKeyboardButton('Обычная расшифровка аудио', callback_data='audio')
 back = types.InlineKeyboardButton('Назад 🔙', callback_data='back')
 markup_audio.add(audio_without_timer)
@@ -94,20 +95,25 @@ def callback_query(call):
         if call.data == 'ru транскрипция':
             bot.send_message(call.message.chat.id, 'Выберите тип расшифровки:', reply_markup=markup_audio)
         elif call.data == 'ru озвучка':
-            bot.send_message(call.message.chat.id, "Введите текст ниже, начиная с команды /speech, только будь внимателен. Для корректной работы данной функции длинна текста должна быть не меньше 8 знаков.")
+            bot.send_message(call.message.chat.id,
+                             "Введите текст ниже, начиная с команды /speech, только будь внимателен. Для корректной работы данной функции длинна текста должна быть не меньше 8 знаков.")
         elif call.data == 'ru эмоция в тексте':
-            bot.send_message(call.message.chat.id, "Если ты хочешь понять, что за эмоция в тексте то перед началом написания текста используй команду /emotion.")
+            bot.send_message(call.message.chat.id,
+                             "Если ты хочешь понять, что за эмоция в тексте то перед началом написания текста используй команду /emotion.")
         elif call.data == 'ru перевод текста':
-            bot.send_message(call.message.chat.id, "Если ты хочешь получить перевод с любого языка на английкий то перед началом написания текста используй команду /mul-en."
-                                                   "\n\n"
-                                                   "Если тебе интересен перевод с любого языка на русский то используй перед началом написания текста команду /mul-ru.")
+            bot.send_message(call.message.chat.id,
+                             "Если ты хочешь получить перевод с любого языка на английкий то перед началом написания текста используй команду /mul-en."
+                             "\n\n"
+                             "Если тебе интересен перевод с любого языка на русский то используй перед началом написания текста команду /mul-ru.")
         elif call.data == 'audio_timer' or call.data == 'audio':
-            bot.send_message(call.message.chat.id, "Отправьте голосовое сообщение или аудиофайл.")
+            bot.send_message(call.message.chat.id,
+                             "Отправьте голосовое сообщение или аудиофайл. Обращаю твое внимание, из-за небольших вычислительных мощностей, твой запрос может обрабатываться чуть больше минуты. ")
             # Сохраняем call_type в глобальную переменную
             global call_type
             call_type = call.data
         elif call.data == 'ru вопрос':
-            bot.send_message(call.message.chat.id, "Если хочешь задать вопрос, начни его с команды /question."),
+            bot.send_message(call.message.chat.id,
+                             "Если хочешь задать вопрос, начни его с команды /question. Обращаю твое внимание, из-за небольших вычислительных мощностей, твой запрос может обрабатываться чуть больше минуты."),
         elif call.data == 'back':
             bot.send_message(call.message.chat.id, "Выберите, что вас интересует:", reply_markup=markup_func_ru)
 
@@ -159,7 +165,8 @@ def get_speech_to_text_message(message):
             with open(os.path.join(folder_path, "TranscriptMessage.txt"), "w") as file:
                 file.write(str(text))
 
-            upload_new_file(os.path.join(folder_path, "TranscriptMessage.txt"), message.from_user.id, function='speech_to_text')
+            upload_new_file(os.path.join(folder_path, "TranscriptMessage.txt"), message.from_user.id,
+                            function='speech_to_text')
             logging.info(f"Отправлен файл с текстом от пользователя {message.from_user.id} на сервер")
 
             # Проверка на пустой результат
@@ -195,15 +202,18 @@ def handle_all_commands(message):
         # Обработка команды /speech
         if command == '/speech':
             file_path = os.path.join(folder_path, "SpeechToText.txt")
-            logging.info(f"Получен текст для озвучивания от пользователя ID_{message.from_user.id}, ID_message_{message.message_id}: {text}")
+            logging.info(
+                f"Получен текст для озвучивания от пользователя ID_{message.from_user.id}, ID_message_{message.message_id}: {text}")
 
             # Сохранение текста и загрузка файла
-            with open(file_path, "w") as file:
+            with open(file_path, "w", encoding="UTF-8") as file:
                 file.write(text)
             upload_new_file(file_path, message.from_user.id, function='text_to_speech')
             logging.info(f"Отправлен файл с текстом от пользователя ID_{message.from_user.id} на сервер")
 
             # Озвучивание текста
+            logging.info(
+                f"Идет создание аудио от пользователя ID_{message.from_user.id}, ID_message_{message.message_id}")
             text_to_voice(text)
             with open(os.path.join(folder_path, 'TextToSpeech.wav'), 'rb') as f:
                 bot.send_audio(chat_id=message.chat.id, reply_to_message_id=message.message_id, audio=f)
@@ -212,27 +222,31 @@ def handle_all_commands(message):
             # Загрузка аудио на сервер
             audio_file_path = os.path.join(folder_path, 'TextToSpeech.wav')
             upload_new_file(audio_file_path, message.from_user.id, function='text_to_speech')
-            logging.info(f"Отправлен файл с аудио от пользователя ID_{message.from_user.id} на сервер")
+            logging.info(f"Отправлен файл с аудио от пользователя ID_{message.from_user.id} , ID_message_{message.message_id} на сервер")
 
         # Обработка команды /question
         elif command == '/question':
             file_path = os.path.join(folder_path, "Question.txt")
-            logging.info(f"Получен вопрос от пользователя ID_{message.from_user.id}, ID_message_{message.message_id}: {text}")
+            logging.info(
+                f"Получен вопрос от пользователя ID_{message.from_user.id}, ID_message_{message.message_id}: {text}")
 
             # Сохранение текста и загрузка файла
-            with open(file_path, "w") as file:
+            with open(file_path, "w", encoding="UTF-8") as file:
                 file.write(text)
             upload_new_file(file_path, message.from_user.id, function='questions')
             logging.info(f"Отправлен файл с текстом от пользователя {message.from_user.id} на сервер")
 
             # Ответ на вопрос
+            logging.info(
+                f"Идет генерация ответа на вопрос от пользователя ID_{message.from_user.id}, ID_message_{message.message_id}")
             answer = question_answer(text)
             bot.reply_to(message, answer)
-            logging.info(f"Отправлен ответ на вопрос пользователю {message.from_user.id} в ответ на сообщение {message.message_id}")
+            logging.info(
+                f"Отправлен ответ на вопрос пользователя id_{message.from_user.id} в ответ на сообщение id_{message.message_id}: {answer}")
 
             # Сохранение ответа
             answer_file_path = os.path.join(folder_path, "Answer.txt")
-            with open(answer_file_path, "w") as file:
+            with open(answer_file_path, "w", encoding="UTF-8") as file:
                 file.write(str(answer))
             upload_new_file(answer_file_path, message.from_user.id, function='questions')
             logging.info(f"Отправлен файл с ответом на вопрос от пользователя {message.from_user.id} на сервер")
@@ -240,71 +254,86 @@ def handle_all_commands(message):
         # Обработка команды /mul-en
         elif command == '/mul-en':
             file_path = os.path.join(folder_path, "TextMulEn.txt")
-            logging.info(f"Получен текст для перевода на ENG от пользователя {message.from_user.id}, id_{message.message_id}: {text}")
+            logging.info(
+                f"Получен текст для перевода на ENG от пользователя ID_{message.from_user.id} ID_message_{message.message_id}: {text}")
 
             # Сохранение текста и перевод
-            with open(file_path, "w") as file:
+            with open(file_path, "w", encoding="UTF-8") as file:
                 file.write(text)
             upload_new_file(file_path, message.from_user.id, function='translate_text')
             logging.info(f"Отправлен файл c текстом от пользователя {message.from_user.id} на сервер")
 
+            logging.info(
+                f"Идет перевод текста на ENG от пользователя ID_{message.from_user.id}, ID_message_{message.message_id}")
             answer = translation_text(text, 'mul-en')
             bot.reply_to(message, answer)
+            logging.info(f"Отправлен перевод текста пользователю id_{message.from_user.id} в ответ на сообщение ID_message_{message.message_id}: {answer}")
 
             # Сохранение перевода
             answer_file_path = os.path.join(folder_path, "TranslateMulEn.txt")
-            with open(answer_file_path, "w") as file:
+            with open(answer_file_path, "w", encoding="UTF-8") as file:
                 file.write(str(answer))
             upload_new_file(answer_file_path, message.from_user.id, function='translate_text')
-            logging.info(f"Отправлен файл с переводом ENG от пользователя {message.from_user.id} на сервер")
+            logging.info(f"Отправлен файл с переводом ENG от пользователя {message.from_user.id} в ответ на сообщение ID_message_{message.message_id} на сервер")
 
         # Обработка команды /mul-ru
         elif command == '/mul-ru':
             file_path = os.path.join(folder_path, "TextMulRu.txt")
-            logging.info(f"Получен текст для перевода на RU от пользователя {message.from_user.id}, id_{message.message_id}: {text}")
+            logging.info(
+                f"Получен текст для перевода на RU от пользователя ID_{message.from_user.id} в ответ на сообщение ID_message{message.message_id}: {text}")
 
             # Сохранение текста и перевод
-            with open(file_path, "w") as file:
+            with open(file_path, "w", encoding="UTF-8") as file:
                 file.write(text)
             upload_new_file(file_path, message.from_user.id, function='translate_text')
-            logging.info(f"Отправлен файл c текстом от пользователя {message.from_user.id} на сервер")
+            logging.info(f"Отправлен файл c текстом от пользователя ID_{message.from_user.id} на сервер")
 
+            logging.info(
+                f"Идет перевод текста на RU от пользователя ID_{message.from_user.id}, ID_message_{message.message_id}")
             answer = translation_text(text, 'mul-ru')
+            logging.info(
+                f"Отправлен ответ пользователю ID_{message.from_user.id} в ответ на сообщение ID_message_{message.message_id}: {answer}")
             bot.reply_to(message, answer)
 
             # Сохранение перевода
             answer_file_path = os.path.join(folder_path, "TranslateMulRu.txt")
-            with open(answer_file_path, "w") as file:
+            with open(answer_file_path, "w", encoding="UTF-8") as file:
                 file.write(str(answer))
             upload_new_file(answer_file_path, message.from_user.id, function='translate_text')
-            logging.info(f"Отправлен файл с переводом RU пользователя {message.from_user.id} на сервер")
+            logging.info(f"Отправлен файл с переводом RU пользователя ID_{message.from_user.id} в ответ на сообщение ID_message_{message.message_id} на сервер")
 
         # Обработка команды /emotion
         elif command == '/emotion':
             file_path = os.path.join(folder_path, "Text.txt")
-            logging.info(f"Получен текст для распознавания эмоции от пользователя {message.from_user.id}, id_{message.message_id}: {text}")
+            logging.info(
+                f"Получен текст для распознавания эмоции от пользователя ID_{message.from_user.id} в ответ на сообщение ID_message_{message.message_id}: {text}")
 
             # Сохранение текста и анализ эмоций
-            with open(file_path, "w") as file:
+            with open(file_path, "w", encoding="UTF-8") as file:
                 file.write(text)
             upload_new_file(file_path, message.from_user.id, function='emotions')
-            logging.info(f"Направлен текст от пользователя {message.from_user.id}, id_{message.message_id}: {text}")
+            logging.info(f"Направлен текст от пользователя ID_{message.from_user.id}, ID_message_{message.message_id}: {text}")
 
+            logging.info(
+                f"Идет определение эмоций в тексте от пользователя ID_{message.from_user.id}, ID_message_{message.message_id}")
             answer = emotion_analysis(text)
             bot.reply_to(message, answer)
+            logging.info(
+                f"Отправлен ответ пользователю ID_{message.from_user.id} на сообщение ID_message_{message.message_id}: {answer}")
 
             # Сохранение результата анализа
             answer_file_path = os.path.join(folder_path, "EmotionInText.txt")
-            with open(answer_file_path, "w") as file:
+            with open(answer_file_path, "w", encoding="UTF-8") as file:
                 file.write(str(answer))
             upload_new_file(answer_file_path, message.from_user.id, function='emotions')
-            logging.info(f"Отправлен результат анализа текста пользователя {message.from_user.id}, id_{message.message_id}: {text}")
+            logging.info(
+                f"Отправлен результат анализа текста пользователя ID_{message.from_user.id} в ответ на сообщение ID_{message.message_id} на сервер: {text}")
 
         # Обработка команды /restart
         elif command == '/restart':
-            bot.send_sticker(message.chat.id, open(os.path.join(sticker_dir,'sticker_4.webp'), 'rb'))
+            logging.info(f"Запущен перезапуск бота")
+            bot.send_sticker(message.chat.id, open(os.path.join(sticker_dir, 'sticker_4.webp'), 'rb'))
             bot.send_message(message.chat.id, "Перезапуск бота...")
-            os.kill(os.getpid(), signal.SIGINT)
             bot.send_message(message.chat.id,
                              "Кажется ты кое-что забыл. Сделай, пожалуйста, выбор 👇", reply_markup=markup_func_ru)
 
@@ -316,13 +345,23 @@ def handle_all_commands(message):
         bot.send_message(message.chat.id,
                          f"Хьюстон, у нас ошибка ⚠️: {e}.\n\n"
                          f"Если ты видишь эту ошибку, то знай что администратор @vaalberit уже ее решает.")
-        bot.send_message(message.chat.id, "Из-за появившейся ошибки я сделаю перезапуск бота для дальнейшей корректной работы, пока ошибку устраняет администратор...")
-        os.kill(os.getpid(), signal.SIGINT)
+        bot.send_message(message.chat.id,
+                         "Из-за появившейся ошибки сделай /restart бота для дальнейшей корректной работы, пока ошибку устраняет администратор...")
+
+        traceback_error_string = traceback.format_exc()
+
+        with open("Error.Log", "a") as myfile:
+            myfile.write("\r\n\r\n" + time.strftime(
+                "%c") + "\r\n<<ERROR polling>>\r\n" + traceback_error_string + "\r\n<<ERROR polling>>")
+        bot.stop_polling()
+        time.sleep(3)
 
 
 @bot.message_handler(content_types=['text'])
 def give_a_choise(message):
-    bot.send_message(message.chat.id, "Я не могу обработать данный текст, так как не понимаю что с ним делать дальше. Сначала выбери, что ты хочешь 👇", reply_markup=markup_func_ru)
+    bot.send_message(message.chat.id,
+                     "Я не могу обработать данный текст, так как не понимаю что с ним делать дальше. Сначала выбери, что ты хочешь 👇",
+                     reply_markup=markup_func_ru)
 
 
 if __name__ == '__main__':
@@ -331,3 +370,10 @@ if __name__ == '__main__':
         bot.polling(non_stop=True)
     except Exception as e:
         logging.error(f"Произошла ошибка: {e}")
+        traceback_error_string = traceback.format_exc()
+
+        with open("Error.Log", "a") as myfile:
+            myfile.write("\r\n\r\n" + time.strftime(
+                "%c") + "\r\n<<ERROR polling>>\r\n" + traceback_error_string + "\r\n<<ERROR polling>>")
+        bot.stop_polling()
+        time.sleep(3)

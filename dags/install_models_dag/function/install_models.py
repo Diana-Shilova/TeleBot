@@ -9,7 +9,6 @@ import torch
 device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
 
 models = [
-    "Helsinki-NLP/opus-mt-ru-en",
     "Helsinki-NLP/opus-mt-en-ru",
     "Helsinki-NLP/opus-mt-mul-en",
     "j-hartmann/emotion-english-distilroberta-base",

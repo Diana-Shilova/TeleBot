@@ -5,20 +5,19 @@ import soundfile as sf
 import torch
 import librosa
 import whisper
-import os
+import os, re
 import ollama
 from transformers import pipeline
 import warnings
 warnings.filterwarnings('ignore')
 
-output_dir = "/all_info_for_drive"
+output_dir = "all_info_for_drive"
 
 os.makedirs(output_dir, exist_ok=True)
 
 device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
 device_id = 0 if device == "cuda" else -1
 
-translator_ru_to_en = pipeline("translation_ru_to_en", model="Helsinki-NLP/opus-mt-ru-en", device=device)
 translator_en_to_ru = pipeline("translation_en_to_ru", model="Helsinki-NLP/opus-mt-en-ru", device=device)
 translator_mul_to_en = pipeline("translation", model="Helsinki-NLP/opus-mt-mul-en", device=device)
 
@@ -114,7 +113,7 @@ def speech_to_text(file_path, call_type):
 
 
 def question_answer(text):
-    text_en = translator_ru_to_en(text)[0]['translation_text']
+    text_en = translator_mul_to_en(text)[0]['translation_text']
 
     try:
         response = ollama.chat(model="llama3.2:3b",
@@ -123,7 +122,11 @@ def question_answer(text):
 
         ollama_response = response['message']['content']
         text_ru = translator_en_to_ru(ollama_response)[0]['translation_text']
-        return text_ru
+
+        sentences = re.split(r'(?<=[.!?])\s+', text_ru)
+        filtered_sentences = [sentence for sentence in sentences if not sentence.strip().endswith(':')]
+        result = ' '.join(filtered_sentences)
+        return result
 
     except Exception as e:
         return e

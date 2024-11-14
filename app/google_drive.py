@@ -6,7 +6,7 @@ import os
 import time
 
 gauth = GoogleAuth()
-gauth.LoadCredentialsFile("/mycreds.txt")
+gauth.LoadCredentialsFile("mycreds.txt")
 drive = GoogleDrive(gauth)
 
 
@@ -40,10 +40,10 @@ def upload_new_file(full_path, user_id, function):
                 'subfolder_translations_id': user_info['subfolder_translations_id'],
                 'subfolder_emotions_in_text_id': user_info['subfolder_emotions_in_text_id']
             } for user_info in info['users'] if user_info['user_id'] == user_id), None)
-            return 'User registrated'
+            return print(f'Пользователь с ID_{user_id} уже зарегистрирован')
 
             if user_folders is None:
-                return 'User ID not found.'
+                return print('ID пользователя не найден.')
 
         if function == 'text_to_speech':
             if file_type == 'txt':
@@ -58,7 +58,7 @@ def upload_new_file(full_path, user_id, function):
                 file.SetContentFile(new_file_name_path)
                 file.Upload()
 
-            return f'Файл {new_file_name} успешно загружен на сервер.'
+            return print(f'Файл {new_file_name} успешно загружен на сервер.')
 
         if function == 'questions':
             if file_type == 'txt':
@@ -94,7 +94,7 @@ def upload_new_file(full_path, user_id, function):
                 file.SetContentFile(new_file_name_path)
                 file.Upload()
 
-            return 'Данный тип файла не поддерживается. Пожалуйста, загрузите файл формата TXT или WAV/MP3.'
+            return print('Данный тип файла не поддерживается. Пожалуйста, загрузите файл формата TXT или WAV/MP3.')
 
     # Обработка ошибок HTTP-запроса (API)
     except HttpError as error:
