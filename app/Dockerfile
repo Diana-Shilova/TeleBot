@@ -1,18 +1,22 @@
-# Используем базовый образ с Python
 FROM python:3.11
 
-# Устанавливаем зависимости
 RUN pip install --upgrade pip
-RUN apt-get update && apt-get install -y ffmpeg
+RUN apt-get update && apt-get install -y ffmpeg curl
 
-# Устанавливаем рабочую директорию
 WORKDIR /app
 
 # Копируем файлы в контейнер
 COPY . /app
 
-# Устанавливаем Python-пакеты
+# Устанавливаем Python-зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Указываем команду запуска
+# Устанавливаем Ollama CLI (если оно еще не установлено)
+RUN curl -sSL https://ollama.com/download/ollama-linux-amd64 -o /usr/local/bin/ollama && \
+    chmod +x /usr/local/bin/ollama && \
+    pip install ollama
+
+# Создаем папку для моделей (если её нет)
+RUN mkdir -p /root/.ollama/models
+
 ENTRYPOINT ["python", "main.py"]

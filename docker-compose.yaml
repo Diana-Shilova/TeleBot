@@ -13,7 +13,7 @@ services:
       - "${PORT_DP}:${PORT_DP}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    restart: always  # Убедитесь, что сервис всегда перезапустится при сбоях
+    restart: always  # сервис всегда перезапустится при сбоях
 
   # Основное приложение
   app:
@@ -27,6 +27,7 @@ services:
     volumes:
       - ./app:/app
       - all_info_for_drive:/all_info_for_drive
+      - llama_models:/root/.ollama/models
     privileged: true
     dns:
       - 8.8.8.8
@@ -39,7 +40,7 @@ services:
       dockerfile: Dockerfile
     container_name: airflow_webserver
     depends_on:
-      - postgres  # Убедитесь, что контейнер запускается после PostgreSQL
+      - postgres  # контейнер запускается после PostgreSQL
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${PORT_DP}/${POSTGRES_DB}
@@ -50,6 +51,7 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags
       - all_info_for_drive:/opt/app/all_info_for_drive
+      - llama_models:/root/.ollama/models
     command: >
       bash -c "
       until pg_isready -h postgres -p ${PORT_DP} -U ${POSTGRES_USER}; do
@@ -75,6 +77,7 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags
       - all_info_for_drive:/opt/app/all_info_for_drive
+      - llama_models:/root/.ollama/models
     command: >
       bash -c "
       until pg_isready -h postgres -p ${PORT_DP} -U ${POSTGRES_USER}; do
@@ -88,3 +91,8 @@ services:
 volumes:
   postgres_data:  # Том для данных PostgreSQL, чтобы данные сохранялись между перезапусками
   all_info_for_drive:
+  llama_models: # Том для подключения локальной модели
+    driver_opts:
+      type: none
+      o: bind
+      device: /Users/dianashilova/.ollama/models

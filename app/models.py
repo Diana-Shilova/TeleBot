@@ -26,7 +26,6 @@ translator_mul_to_en = pipeline("translation", model="Helsinki-NLP/opus-mt-mul-e
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 ModelSTT = whisper.load_model("medium", device='cpu')
-ModelQA = "facebook/blenderbot-400M-distill"
 
 
 def text_to_voice(msg):

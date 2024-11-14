@@ -3,7 +3,7 @@ import telebot
 import random
 import signal
 from telebot import types
-from text_to_speech import text_to_voice, speech_to_text, question_answer, translation_text, emotion_analysis
+from models import text_to_voice, speech_to_text, question_answer, translation_text, emotion_analysis
 from google_drive import upload_new_file, create_folder_for_new_user
 import os
 
@@ -32,7 +32,7 @@ logging.basicConfig(
 )
 
 # JustSpeech
-TOKEN = 'YOUR_TOKEN'
+TOKEN = '7318753618:AAFGEcDELj5DgHutedK7vKFX0xgRXXDvRUo'
 bot = telebot.TeleBot(TOKEN)
 
 # Создание кнопок
