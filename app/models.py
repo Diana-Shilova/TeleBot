@@ -113,23 +113,32 @@ def speech_to_text(file_path, call_type):
 
 
 def question_answer(text):
-    text_en = translator_mul_to_en(text)[0]['translation_text']
+    text_en = "Tell me more about this: " + translator_mul_to_en(text)[0]['translation_text']
 
     try:
-        response = ollama.chat(model="llama3.2:3b",
-                               messages=[{'role': 'user', 'content': text_en}],
-                               options={'temperature': 1})
+        response = ollama.chat(
+            model="llama3.2:3b",
+            messages=[{'role': 'user', 'content': text_en}],
+            options={'temperature': 1.5, 'top_p': 0.9, 'max_tokens': 1000}  # Увеличиваем max_tokens
+        )
 
         ollama_response = response['message']['content']
-        text_ru = translator_en_to_ru(ollama_response)[0]['translation_text']
+        print("Ответ модели (англ.):\n", ollama_response)
 
-        sentences = re.split(r'(?<=[.!?])\s+', text_ru)
-        filtered_sentences = [sentence for sentence in sentences if not sentence.strip().endswith(':')]
-        result = ' '.join(filtered_sentences)
-        return result
+        sentences = re.split(r'(?<=[.!?])\s+', ollama_response)
+        translated_sentences = []
+
+        for sentence in sentences:
+            translation = translator_en_to_ru(sentence)[0]['translation_text']
+            translated_sentences.append(translation)
+
+        full_translation = ' '.join(translated_sentences)
+        print("Перевод на русский:\n", full_translation)
+
+        return full_translation
 
     except Exception as e:
-        return e
+        return str(e)
 
 
 def translation_text(text, command):
